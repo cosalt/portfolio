@@ -1,0 +1,96 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import ParallaxHeader from '../components/ParallaxHeader.astro';
+import { Octokit } from 'octokit';
+
+const octokit = new Octokit();
+
+const { data: repos } = await octokit.request('GET /users/{username}/repos', {
+  username: 'cosalt',
+  sort: 'updated',
+  per_page: 100,
+  headers: {
+    'X-GitHub-Api-Version': '2022-11-28'
+  }
+});
+
+const sortedRepos = repos.sort((a, b) => b.stargazers_count - a.stargazers_count);
+---
+
+<Layout title="Cosalt's GitHub Projects">
+  <ParallaxHeader />
+  
+  <main class="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 py-20 px-4">
+    <div class="projects-container container mx-auto">
+      <header class="text-center mb-16 opacity-0 translate-y-10" data-projects-header>
+        <h1 class="text-5xl font-bold text-white mb-4">My Projects</h1>
+        <p class="text-xl text-gray-300">A collection of my open source work</p>
+      </header>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {sortedRepos.map((repo, index) => (
+          <div 
+            class="opacity-0 translate-y-10" 
+            data-project-card 
+            style={`--animation-delay: ${(index % 3) * 0.2}s`}
+          >
+            <ProjectCard
+              name={repo.name}
+              description={repo.description}
+              url={repo.html_url}
+              language={repo.language}
+              stars={repo.stargazers_count}
+              forks={repo.forks_count}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+
+  [data-project-card] {
+    transition: opacity 0.8s ease-out, transform 1s ease-out;
+    transition-delay: var(--animation-delay);
+  }
+
+  [data-projects-header] {
+    transition: opacity 0.8s ease-out, transform 1s ease-out;
+  }
+</style>
+
+<script>
+  function handleParallaxElements() {
+    const projectsHeader = document.querySelector('[data-projects-header]');
+    const projectCards = document.querySelectorAll('[data-project-card]');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.remove('opacity-0', 'translate-y-10');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -100px 0px'
+    });
+
+    if (projectsHeader) {
+      observer.observe(projectsHeader);
+    }
+
+    projectCards.forEach(card => {
+      observer.observe(card);
+    });
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', handleParallaxElements);
+</script>

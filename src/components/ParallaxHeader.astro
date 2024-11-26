@@ -1,0 +1,363 @@
+---
+const profileImageUrl = "https://github.com/cosalt.png";
+---
+
+<div class="relative h-[150vh] overflow-hidden">
+  <div class="parallax-bg absolute inset-0 z-0">
+    <canvas id="marketCanvas" class="w-full h-full"></canvas>
+  </div>
+  <div 
+    class="name-background absolute inset-0 z-10 flex items-center justify-center font-sans text-[20vw] font-black tracking-tighter"
+    data-parallax-speed="0.2"
+  >
+    <span class="bg-text opacity-transition">
+      <span class="typing-text">CO</span><span class="typing-text-2">SALT</span>
+    </span>
+  </div>
+  <div 
+    class="profile-section absolute w-full h-screen flex items-center justify-center"
+    data-parallax-speed="-0.5"
+  >
+    <div class="profile-container relative">
+      <div class="profile-frame">
+        <div class="neon-border"></div>
+        <img 
+          src={profileImageUrl}
+          alt="Profile"
+          class="rounded-full w-64 h-64 object-cover"
+        />
+      </div>
+      <div class="text-center mt-8">
+        <h2 class="text-white text-5xl font-bold mb-3">Cosalt</h2>
+        <p class="text-white/80 text-2xl mb-12 typing-title">
+          <span class="typing-cursor"></span>
+        </p>
+        <div class="animate-bounce">
+          <p class="text-white/60 text-sm">Scroll Down</p>
+          <svg class="w-6 h-6 mx-auto mt-2 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .parallax-bg {
+    transform: scale(1.2);
+    will-change: transform;
+    background: #0a0f1f;
+  }
+
+  .name-background {
+    will-change: transform;
+  }
+
+  .bg-text {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 
+      0 4px 12px rgba(0,0,0,0.1),
+      0 1px 2px rgba(255,255,255,0.1);
+    letter-spacing: -0.05em;
+    transition: opacity 0.3s ease;
+  }
+
+  .typing-text, .typing-text-2 {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .typing-text {
+    animation: fadeInUp 0.5s ease forwards;
+  }
+
+  .typing-text-2 {
+    animation: fadeInUp 0.5s ease forwards 0.3s;
+  }
+
+  .typing-title::before {
+    content: "";
+    animation: typing 2s steps(16) forwards 0.8s;
+    white-space: nowrap;
+    overflow: hidden;
+    display: inline-block;
+    width: 0;
+    border-right: 3px solid transparent;
+  }
+
+  .typing-cursor {
+    display: inline-block;
+    width: 3px;
+    height: 1em;
+    background-color: currentColor;
+    margin-left: 2px;
+    animation: blink 0.7s steps(2) infinite 0.8s,
+             fadeOut 0s forwards 2.8s;
+    vertical-align: text-top;
+    opacity: 0;
+  }
+
+  .profile-section {
+    will-change: transform;
+  }
+
+  .profile-frame {
+    position: relative;
+    width: 256px;
+    height: 256px;
+    margin: 0 auto;
+  }
+
+  .neon-border {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(
+      from 0deg,
+      #3b82f6,
+      #1d4ed8,
+      #3b82f6
+    );
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: rotate 4s linear infinite;
+    opacity: 0.8;
+    filter: blur(4px);
+  }
+
+  @keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes typing {
+    from { width: 0; content: "Software Developer"; }
+    to { width: 100%; content: "Software Developer"; }
+  }
+
+  @keyframes blink {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeOut {
+    to { opacity: 0; }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .profile-container {
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+</style>
+
+<script>
+  class DataPoint {
+    constructor(x: number, y: number, value: number) {
+      this.x = x;
+      this.y = y;
+      this.value = value;
+      this.targetY = y;
+      this.velocity = 0;
+    }
+    x: number;
+    y: number;
+    value: number;
+    targetY: number;
+    velocity: number;
+  }
+
+  class MarketVisualizer {
+    private canvas: HTMLCanvasElement;
+    private ctx: CanvasRenderingContext2D;
+    private dataPoints: DataPoint[] = [];
+    private numPoints = 150; // Increased number of points for smoother curve
+    private animationFrame: number = 0;
+    private lastTimestamp: number = 0;
+    private updateCounter: number = 0;
+
+    constructor() {
+      this.canvas = document.getElementById('marketCanvas') as HTMLCanvasElement;
+      this.ctx = this.canvas.getContext('2d')!;
+      this.resize();
+      this.initializeData();
+      window.addEventListener('resize', () => this.resize());
+    }
+
+    private resize() {
+      this.canvas.width = this.canvas.offsetWidth * window.devicePixelRatio;
+      this.canvas.height = this.canvas.offsetHeight * window.devicePixelRatio;
+    }
+
+    private initializeData() {
+      const width = this.canvas.width;
+      const height = this.canvas.height;
+      
+      for (let i = 0; i < this.numPoints; i++) {
+        const x = (i / (this.numPoints - 1)) * width;
+        const y = height / 2 + (Math.random() - 0.5) * height * 0.3; // Reduced initial variation
+        this.dataPoints.push(new DataPoint(x, y, Math.random()));
+      }
+    }
+
+    private updateData(deltaTime: number) {
+      const height = this.canvas.height;
+      
+      // Slow down updates by only updating every few frames
+      this.updateCounter = (this.updateCounter + 1) % 3;
+      if (this.updateCounter !== 0) return;
+
+      // Update target values with a slower random walk
+      this.dataPoints.forEach((point, i) => {
+        if (Math.random() < 0.03) { // Reduced probability of change
+          const maxDeviation = height * 0.2; // Reduced maximum movement
+          point.targetY = height / 2 + (Math.random() - 0.5) * maxDeviation;
+        }
+        
+        // Slower spring physics
+        const spring = 0.05; // Reduced spring constant
+        const damping = 0.95; // Increased damping
+        
+        const force = (point.targetY - point.y) * spring;
+        point.velocity += force;
+        point.velocity *= damping;
+        
+        point.y += point.velocity * deltaTime * 0.5; // Slowed down movement
+        point.value = Math.random() * 0.3 + 0.1; // Reduced glow intensity
+      });
+    }
+
+    private draw() {
+      const ctx = this.ctx;
+      const width = this.canvas.width;
+      const height = this.canvas.height;
+      
+      // Clear canvas with a dark background
+      ctx.fillStyle = '#0a0f1f';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw the data visualization
+      ctx.beginPath();
+      ctx.moveTo(this.dataPoints[0].x, this.dataPoints[0].y);
+      
+      // Create smoother curve through points
+      for (let i = 0; i < this.dataPoints.length - 1; i++) {
+        const current = this.dataPoints[i];
+        const next = this.dataPoints[i + 1];
+        const controlX = (current.x + next.x) / 2;
+        
+        ctx.quadraticCurveTo(current.x, current.y, controlX, (current.y + next.y) / 2);
+      }
+      
+      // Gradient for the line
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');   // Reduced opacity Blue
+      gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.3)'); // Reduced opacity Indigo
+      gradient.addColorStop(1, 'rgba(139, 92, 246, 0.3)');   // Reduced opacity Violet
+      
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 1.5; // Slightly thinner line
+      ctx.stroke();
+      
+      // Draw softer glowing points
+      this.dataPoints.forEach(point => {
+        const glow = ctx.createRadialGradient(
+          point.x, point.y, 0,
+          point.x, point.y, 30 // Increased glow radius
+        );
+        glow.addColorStop(0, `rgba(59, 130, 246, ${point.value * 0.3})`); // Reduced glow intensity
+        glow.addColorStop(1, 'rgba(59, 130, 246, 0)');
+        
+        ctx.fillStyle = glow;
+        ctx.fillRect(point.x - 30, point.y - 30, 60, 60);
+      });
+    }
+
+    public animate(timestamp: number) {
+      if (!this.lastTimestamp) this.lastTimestamp = timestamp;
+      const deltaTime = (timestamp - this.lastTimestamp) / 16;
+      this.lastTimestamp = timestamp;
+      
+      this.updateData(deltaTime);
+      this.draw();
+      
+      this.animationFrame = requestAnimationFrame(this.animate.bind(this));
+    }
+
+    public start() {
+      this.animate(0);
+    }
+
+    public stop() {
+      cancelAnimationFrame(this.animationFrame);
+    }
+  }
+
+  let ticking = false;
+  const parallaxElements = document.querySelectorAll('[data-parallax-speed]');
+  const bg = document.querySelector('.parallax-bg');
+  const bgText = document.querySelector('.bg-text');
+
+  // Initialize market visualizer
+  const visualizer = new MarketVisualizer();
+  visualizer.start();
+
+  function updateParallax(scrollPos: number) {
+    if (bg) {
+      bg.style.transform = `scale(1.2) translateY(${scrollPos * 0.5}px)`;
+    }
+
+    // Calculate opacity based on scroll position
+    if (bgText) {
+      const opacity = Math.max(0, 1 - (scrollPos / (window.innerHeight * 0.5)));
+      bgText.style.opacity = opacity.toString();
+    }
+
+    parallaxElements.forEach((element) => {
+      const speed = parseFloat(element.getAttribute('data-parallax-speed') || '0');
+      const yPos = scrollPos * speed;
+      const scale = 1 - (Math.abs(yPos) * 0.001);
+      
+      if (element.classList.contains('profile-section')) {
+        element.style.transform = `translate3d(0, ${yPos}px, 0) scale(${scale})`;
+      } else {
+        element.style.transform = `translate3d(0, ${yPos}px, 0)`;
+      }
+    });
+  }
+
+  window.addEventListener('scroll', () => {
+    const scrollPos = window.pageYOffset;
+
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        updateParallax(scrollPos);
+        ticking = false;
+      });
+
+      ticking = true;
+    }
+  });
+</script>
